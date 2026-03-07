@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import Header from '../components/Header';
 import SettingItem from '../ui/setting-item';
 import ToggleSwitch from '../ui/toggle-switch';
@@ -86,12 +85,9 @@ function Settings({ onBack, isDarkMode, onToggleDarkMode, userId }: SettingsProp
       <Header onSettingsClick={onBack} showBackArrow={true} />
 
       {/* Settings Content */}
-      <motion.div
+      <div
         ref={scrollAreaRef}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex-1 px-[24px] pt-[24px] space-y-3 overflow-y-auto"
+        className="flex-1 px-[24px] pt-[48px] space-y-3 overflow-y-auto"
         style={{
           overscrollBehavior: 'none',
           WebkitOverflowScrolling: 'touch',
@@ -131,7 +127,7 @@ function Settings({ onBack, isDarkMode, onToggleDarkMode, userId }: SettingsProp
         <div className="pt-8 text-center">
           <p className="text-[12px] text-muted-foreground">Mentra Merge v1.0.0</p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

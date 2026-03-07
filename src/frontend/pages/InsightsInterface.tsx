@@ -315,10 +315,8 @@ function InsightsInterface({ userId }: InsightsInterfaceProps) {
       </AnimatePresence>
 
       {/* Main Content */}
-      <motion.div
+      <div
         className="flex-1 flex flex-col relative"
-        initial={{ x: 0 }}
-        animate={{ x: 0 }}
         style={{ backgroundColor: 'var(--background)' }}
       >
         {/* Header */}
@@ -496,7 +494,7 @@ function InsightsInterface({ userId }: InsightsInterfaceProps) {
 
         {/* Bottom Header */}
         <BottomHeader isVisible={insights.length > 0} />
-      </motion.div>
+      </div>
     </div>
   );
 }
