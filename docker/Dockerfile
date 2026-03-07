@@ -10,3 +10,5 @@ COPY . .
 
 # Expose the port (Porter uses 80)
 EXPOSE 80
+
+CMD ["bun", "src/index.ts"]
