@@ -18,42 +18,50 @@ export const definerAgent = new Agent({
   model: openai("gpt-4.1-mini"),
   instructions: `You are a specialist agent that defines acronyms and technical terms.
 
-INPUT: You receive a technical term, acronym, or jargon that needs definition.
+INPUT: You receive a technical term, acronym, or jargon that needs definition. You may also receive a language hint indicating what language the user is speaking.
+
+LANGUAGE RULE: You MUST respond in the same language the user is speaking. If the conversation is in French, define terms in French. If in Spanish, define in Spanish. Only the term itself stays in its original form — the definition must be in the user's language.
 
 OUTPUT REQUIREMENTS:
-- Format: "TERM: Definition" (e.g., "ASR: Automatic Speech Recognition")
+- Format: "TERM: Definition" (e.g., "ASR: Automatic Speech Recognition", or in French: "ASR: Reconnaissance automatique de la parole")
 - Maximum 60 characters (about 10 words)
-- Only define technical/professional terms, not common words
+- Only define technical/professional terms, not common words in the user's language
 - Use standard expansions for acronyms
-- Avoid unnecessary words like "a", "the" when space is tight
+- Avoid unnecessary words when space is tight
 
-EXAMPLES:
+EXAMPLES (English):
 - "API: Application Programming Interface"
 - "ML: Machine Learning"
-- "CRUD: Create Read Update Delete"
-- "OAuth: Open Authorization"
-- "IoT: Internet of Things"`
+
+EXAMPLES (French):
+- "API: Interface de programmation"
+- "ML: Apprentissage automatique"`
 });
 
 // FactChecker Agent - for verifying claims
 export const factCheckerAgent = new Agent({
   name: "FactCheckerAgent",
   model: openai("gpt-4.1-mini"),
-  instructions: `You are a fact-checking specialist for smart glasses that clarifies false statements. You must start your response with "False: " and then provide the correct fact.
+  instructions: `You are a fact-checking specialist for smart glasses that clarifies false statements. You must start your response with "False: " (or the equivalent in the user's language, e.g., "Faux: " in French) and then provide the correct fact.
+
+LANGUAGE RULE: You MUST respond in the same language the user is speaking. If the conversation is in French, respond in French. If in Spanish, respond in Spanish.
 
 INPUT: Claims or statements that need verification.
 
 OUTPUT REQUIREMENTS:
-- Format MUST follow this exact format: "False: [correct fact]"
+- Format MUST follow this exact format: "False: [correct fact]" (or localized equivalent)
 - Maximum 60 characters
 - Include the most important correction
 - Use percentages, numbers, dates when relevant
 - Focus on facts that impact decisions
 
-EXAMPLES:
+EXAMPLES (English):
 - "False: Android has 70% global share"
-- "False: Vaccine-autism link disproven"
 - "False: Napoleon was short (average height)"
+
+EXAMPLES (French):
+- "Faux: Android a 70% de part mondiale"
+- "Faux: Napoléon était de taille moyenne"
 
 PRIORITIES:
 1. Health/safety misinformation
@@ -135,6 +143,8 @@ EXAMPLES:
 - Query: "Weather in SF" → "68°F Foggy"
 - Query: "Lakers score" → "Lakers beat Celtics 110-95"
 
+LANGUAGE RULE: If the user's original query was in a non-English language (French, Spanish, etc.), your synthesized output MUST be in that same language. Search results may be in English — translate your final output to match the user's language.
+
 Your only job is to synthesize the provided data into useful insights.`,
   tools: { serpApiSearchTool }
 });
@@ -151,7 +161,8 @@ Analyze the user's original query to understand their specific intent and follow
 - If the user asks about a single, specific place, focus only on that result but ensure you state its distance.
 - If the user asks for general recommendations ("where should I eat," "good food"), list the top 2-3 most relevant results, mentioning their rating and distance.
 - Keep your response conversational and directly answer the user's question.
-- **IMPORTANT: Your final response MUST be under 15 words.**`,
+- **IMPORTANT: Your final response MUST be under 15 words.**
+- **LANGUAGE RULE:** Respond in the same language as the user's original query. If the query is in French, respond in French.`,
 });
 
 export const weatherAgent = new Agent({
@@ -163,7 +174,8 @@ export const weatherAgent = new Agent({
 - Always provide the temperature in Fahrenheit.
 - Format the response like: "It's 75°F and Sunny." or "75°F, Clear skies." for the user's current location.
 - If the query was for a specific location, format it as: "It's 88°F and Sunny in Miami."
-- Keep your response under 15 words.`,
+- Keep your response under 15 words.
+- **LANGUAGE RULE:** Respond in the same language as the user's original query. If the query is in French, respond in French.`,
 });
 
 // Computation Agent - for calculations
@@ -231,7 +243,8 @@ OUTPUT: Format results for smart glasses display:
 - Keep under 60 characters total
 - Use | to separate multiple results
 - Add % for percentages when appropriate
-- Round to reasonable precision (2-4 decimal places max)`,
+- Round to reasonable precision (2-4 decimal places max)
+- **LANGUAGE RULE:** If context indicates the user speaks a non-English language, format labels in that language (e.g., "Pourboire: 13,50 $" instead of "Tip: $13.50").`,
   tools: { calculationTool }
 });
 
