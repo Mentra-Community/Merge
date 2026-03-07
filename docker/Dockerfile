@@ -8,5 +8,7 @@ RUN bun install --frozen-lockfile
 # Copy the entire application code
 COPY . .
 
-# Expose the port (Porter uses 80)
-EXPOSE 80
+# Expose the port (MentraOS default: 3000)
+EXPOSE 3000
+
+CMD ["bun", "src/index.ts"]
