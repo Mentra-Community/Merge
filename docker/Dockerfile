@@ -9,6 +9,6 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Expose the port (Porter uses 80)
-EXPOSE 80
+EXPOSE 3000
 
 CMD ["bun", "src/index.ts"]
