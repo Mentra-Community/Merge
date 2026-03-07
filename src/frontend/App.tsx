@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { useMentraAuth } from "@mentra/react";
-import HomePage from "./pages/home/HomePage";
+import InsightsInterface from "./pages/InsightsInterface";
 
 // Theme Context
 interface ThemeContextValue {
@@ -43,32 +43,6 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
-
-  // Sync theme with backend when user authenticates
-  useEffect(() => {
-    if (isAuthenticated && userId) {
-      fetch(`/api/theme-preference?userId=${encodeURIComponent(userId)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.theme === "dark" || data.theme === "light") {
-            setTheme(data.theme);
-            localStorage.setItem("theme", data.theme);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isAuthenticated, userId]);
-
-  // Save theme to backend on change
-  useEffect(() => {
-    if (isAuthenticated && userId) {
-      fetch("/api/theme-preference", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, theme }),
-      }).catch(() => {});
-    }
-  }, [theme, isAuthenticated, userId]);
 
   // Keyboard shortcut: Cmd+Shift+D to toggle theme
   useEffect(() => {
@@ -116,7 +90,7 @@ export default function App() {
       value={{ theme, isDarkMode: theme === "dark", toggleTheme }}
     >
       <div className="font-sans bg-background text-foreground min-h-screen">
-        <HomePage userId={userId || ""} />
+        <InsightsInterface userId={userId || ""} />
       </div>
     </ThemeContext.Provider>
   );

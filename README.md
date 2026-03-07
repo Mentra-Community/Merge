@@ -1,60 +1,80 @@
-# MentraOS-Camera-Example-App
+<p align="center">
+  <img src="src/public/assets/icons/merge_logo.png" alt="Mentra Merge" width="120" height="120" />
+</p>
 
-This is a simple example app which demonstrates how to use the MentraOS Camera API to take photos and display them in a webview.
+<h1 align="center">Mentra Merge</h1>
 
-You could also send the photo to an AI api, store it in a database or cloud storage, send it to Roboflow, or do other processing.
+<p align="center">
+  <strong>Proactive conversation intelligence for smart glasses</strong>
+</p>
 
-### Install MentraOS on your phone
+<p align="center">
+  Listens to conversations. Surfaces insights, definitions, and real-time data.<br/>
+  Never interrupts. Always relevant.
+</p>
 
-MentraOS install links: [mentra.glass/install](https://mentra.glass/install)
+<p align="center">
+  <a href="https://apps.mentra.glass/package/com.mentra.merge">Install from Mentra App Store</a>
+</p>
 
-### (Easiest way to get started) Set up ngrok
+---
 
-1. `brew install ngrok`
+## What It Does
 
-2. Make an ngrok account
+Merge is a proactive AI assistant that listens to your conversations through smart glasses and surfaces contextual insights on the HUD — definitions, fact-checks, nearby places, weather, web search results, and calculations.
 
-3. [Use ngrok to make a static address/URL](https://dashboard.ngrok.com/)
+- **Proactive insights** — Surfaces relevant information without being asked
+- **Frequency modes** — Low, Medium, High control how often Merge speaks up
+- **Places & Weather** — "Where can I get coffee?" or "What's the weather?"
+- **Web search** — Real-time search for current events, prices, scores
+- **Calculations** — "What's 20% tip on $67.50?"
+- **Definitions** — Automatically defines acronyms and technical terms
+- **Fact-checking** — Corrects false claims in real-time
 
-### Register your App with MentraOS
+## Getting Started
 
-1. Navigate to [console.mentra.glass](https://console.mentra.glass/)
+### Prerequisites
 
-2. Click "Sign In", and log in with the same account you're using for MentraOS
+1. Install MentraOS: [get.mentraglass.com](https://get.mentraglass.com)
+2. Install Bun: [bun.sh](https://bun.sh/docs/installation)
+3. Set up ngrok: `brew install ngrok` and create a [static URL](https://dashboard.ngrok.com/)
 
-3. Click "Create App"
+### Register Your App
 
-4. Set a unique package name like `com.yourName.yourAppName`
+1. Go to [console.mentra.glass](https://console.mentra.glass/)
+2. Sign in and click "Create App"
+3. Set a unique package name (e.g., `com.yourName.merge`)
+4. Enter your ngrok URL as "Public URL"
+5. Add **microphone** and **location** permissions
 
-5. For "Public URL", enter your Ngrok's static URL
+### Run It
 
-6. In the edit app screen, add the microphone permission
+```bash
+# Install
+git clone <repo-url>
+cd mentra-merge
+bun install
+cp .env.example .env
 
-### Get your App running!
+# Configure .env with your credentials
+# PORT, PACKAGE_NAME, MENTRAOS_API_KEY (required)
+# OPENAI_API_KEY (required - powers the AI agents)
+# SERPAPI_API_KEY (required - web search)
+# GOOGLE_MAPS_API_KEY (required - places & geocoding)
+# GOOGLE_WEATHER_API_KEY (optional - falls back to GOOGLE_MAPS_API_KEY)
 
-1. [Install bun](https://bun.sh/docs/installation)
+# Start
+bun run dev
 
-2. Clone this repo locally: `git clone https://github.com/Mentra-Community/MentraOS-Camera-Example-App`
+# Expose via ngrok
+ngrok http --url=<YOUR_NGROK_URL> 3000
+```
 
-3. cd into your repo, then type `bun install`
+## Documentation
 
-5. Set up your environment variables:
-   * Create a `.env` file in the root directory by copying the example: `cp .env.example .env`
-   * Edit the `.env` file with your app details:
-     ```
-     PORT=3000
-     PACKAGE_NAME=com.yourName.yourAppName
-     MENTRAOS_API_KEY=your_api_key_from_console
-     ```
-   * Make sure the `PACKAGE_NAME` matches what you registered in the MentraOS Console
-   * Get your `API_KEY` from the MentraOS Developer Console
+- [MentraOS Docs](https://docs.mentra.glass)
+- [Developer Console](https://console.mentra.glass)
 
-6. Run your app with `bun run dev`
+## License
 
-7. To expose your app to the internet (and thus MentraOS) with ngrok, run: `ngrok http --url=<YOUR_NGROK_URL_HERE> 3000`
-    * `3000` is the port. It must match what is in the app config. For example, if you entered `port: 8080`, use `8080` for ngrok instead.
-
-
-### Next Steps
-
-Check out the full documentation at [docs.mentra.glass](https://docs.mentra.glass/camera)
+MIT

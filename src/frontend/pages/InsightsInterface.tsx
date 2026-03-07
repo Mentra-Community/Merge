@@ -1,0 +1,504 @@
+import { useState, useEffect, useRef, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+// @ts-ignore - Bun bundler doesn't resolve `export { X as default }` re-exports correctly
+import LottieImport from 'lottie-react';
+const Lottie: typeof LottieImport = (LottieImport as any)?.default ?? LottieImport;
+import Markdown from 'react-markdown';
+// @ts-ignore - JSON import
+import MentraLogoAnimation from '../../public/figma-parth-assets/anim/Mentralogo2.json';
+// @ts-ignore - PNG import
+import MergeLogo from '../../public/assets/icons/merge_logo.png';
+import Settings from './Settings';
+import Header from '../components/Header';
+import BottomHeader from '../components/BottomHeader';
+import { useTheme } from '../App';
+
+interface Insight {
+  id: string;
+  text: string;
+  timestamp: string;
+  agentType?: string;
+  reasoning?: string;
+}
+
+interface InsightsInterfaceProps {
+  userId: string;
+}
+
+const THINKING_WORDS = [
+  'doodling',
+  'vibing',
+  'cooking',
+  'pondering',
+  'brewing',
+  'crafting',
+  'dreaming',
+  'computing',
+  'processing',
+  'brainstorming',
+  'conjuring',
+  'imagining',
+];
+
+/**
+ * Memoized insight bubble component
+ */
+const InsightBubble = memo(function InsightBubble({
+  insight,
+  isNew,
+}: {
+  insight: Insight;
+  isNew: boolean;
+}) {
+  return (
+    <motion.div
+      key={insight.id}
+      initial={isNew ? { opacity: 0, y: 10 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-2 items-start"
+    >
+      {/* Avatar */}
+      <div className="flex items-center gap-2 flex-row">
+        <div className="ml-[8px]">
+          <img src={MergeLogo} alt="Mentra" className="w-[40px] h-[40px]" />
+        </div>
+      </div>
+
+      {/* Insight Content */}
+      <div className="flex flex-col items-start">
+        <div
+          className="leading-relaxed whitespace-pre-line pt-[8px] pb-[8px] pr-[16px] pl-0 rounded-[16px] inline-block max-w-[85vw] sm:max-w-lg text-[16px] bg-transparent font-medium *:text-[var(--secondary-foreground)]"
+          style={{
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            color: 'var(--secondary-foreground)',
+          }}
+        >
+          <Markdown
+            components={{
+              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+              strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+              em: ({ children }) => <em className="italic">{children}</em>,
+              ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+              li: ({ children }) => <li className="mb-1">{children}</li>,
+              code: ({ children, className }) => {
+                const isBlock = className?.includes('language-');
+                return isBlock ? (
+                  <pre className="bg-[var(--primary-foreground)] rounded-lg p-3 my-2 overflow-x-auto">
+                    <code className="text-[14px] font-mono">{children}</code>
+                  </pre>
+                ) : (
+                  <code className="bg-[var(--primary-foreground)] rounded px-1.5 py-0.5 text-[14px] font-mono">
+                    {children}
+                  </code>
+                );
+              },
+              h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-base font-bold mb-1">{children}</h3>,
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-2 border-[var(--muted-foreground)] pl-3 italic my-2">
+                  {children}
+                </blockquote>
+              ),
+            }}
+          >
+            {insight.text}
+          </Markdown>
+        </div>
+        <div className="text-[12px] ml-[15px] mt-1.5 text-left w-full text-muted-foreground">
+          {new Date(insight.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
+/**
+ * InsightsInterface — Main webview showing a scrollable list of insights via SSE
+ * Modeled after New-Mentra-AI's ChatInterface but adapted for insight cards
+ */
+function InsightsInterface({ userId }: InsightsInterfaceProps) {
+  const { isDarkMode, toggleTheme } = useTheme();
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [hasConnectedBefore] = useState(() => {
+    return sessionStorage.getItem('merge-session-connected') === 'true';
+  });
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [thinkingWord, setThinkingWord] = useState(() =>
+    THINKING_WORDS[Math.floor(Math.random() * THINKING_WORDS.length)]
+  );
+  // Track which insight IDs have been rendered to avoid re-animating old ones
+  const renderedIdsRef = useRef<Set<string>>(new Set());
+  const [sessionActive, setSessionActive] = useState<boolean | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [currentPage, setCurrentPage] = useState<'insights' | 'settings'>('insights');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sseRef = useRef<EventSource | null>(null);
+  // Track whether next scroll should be instant (history load) vs smooth (live insight)
+  const scrollInstantRef = useRef(false);
+
+  // Scroll to bottom of insights
+  const scrollToBottom = (instant?: boolean) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    requestAnimationFrame(() => {
+      container.scrollTo({ top: container.scrollHeight, behavior: instant ? 'instant' : 'smooth' });
+    });
+  };
+
+  useEffect(() => {
+    if (insights.length > 0) {
+      scrollToBottom(scrollInstantRef.current);
+      scrollInstantRef.current = false;
+    }
+  }, [insights]);
+
+  useEffect(() => {
+    if (currentPage === 'insights' && insights.length > 0) {
+      scrollToBottom(true);
+    }
+  }, [currentPage]);
+
+  // Set up SSE connection for real-time insight updates (with auto-reconnect)
+  useEffect(() => {
+    if (!userId) return;
+
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_DELAY = 30000;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = () => {
+      const sseUrl = `/api/insight-stream?userId=${encodeURIComponent(userId)}`;
+      const eventSource = new EventSource(sseUrl);
+      sseRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        reconnectAttempts = 0;
+        setIsLoadingHistory(true);
+        sessionStorage.setItem('merge-session-connected', 'true');
+      };
+
+      eventSource.onmessage = (event) => {
+        if (!event.data || event.data.trim() === '') return;
+
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === 'insight') {
+            // New insight from the agent pipeline
+            const randomWord = THINKING_WORDS[Math.floor(Math.random() * THINKING_WORDS.length)];
+            setThinkingWord(randomWord);
+            setIsProcessing(false);
+
+            setInsights((prev) => [
+              ...prev,
+              {
+                id: data.id || Date.now().toString(),
+                text: data.text,
+                timestamp: data.timestamp || new Date().toISOString(),
+                agentType: data.agentType,
+                reasoning: data.reasoning,
+              },
+            ]);
+          } else if (data.type === 'processing') {
+            const randomWord = THINKING_WORDS[Math.floor(Math.random() * THINKING_WORDS.length)];
+            setThinkingWord(randomWord);
+            setIsProcessing(true);
+          } else if (data.type === 'connected') {
+            setIsLoadingHistory(true);
+          } else if (data.type === 'history') {
+            // Instant scroll, no animation — mark all IDs as already rendered
+            scrollInstantRef.current = true;
+            const historyInsights = (data.insights || []).map((ins: any) => ({
+              id: ins.id,
+              text: ins.text,
+              timestamp: ins.timestamp,
+              agentType: ins.agentType,
+              reasoning: ins.reasoning,
+            }));
+            for (const ins of historyInsights) {
+              renderedIdsRef.current.add(ins.id);
+            }
+            setInsights(historyInsights);
+            setIsLoadingHistory(false);
+          } else if (data.type === 'session_started') {
+            setSessionActive(true);
+          } else if (data.type === 'session_reconnecting') {
+            setSessionActive(false);
+            setIsProcessing(false);
+          } else if (data.type === 'session_reconnected') {
+            setSessionActive(true);
+          } else if (data.type === 'session_ended') {
+            setSessionActive(false);
+            setIsProcessing(false);
+            setInsights([]);
+            renderedIdsRef.current.clear();
+          } else if (data.type === 'session_heartbeat') {
+            setSessionActive(data.active);
+            setIsLoadingHistory(false);
+            if (!data.active) {
+              setIsProcessing(false);
+            }
+          }
+        } catch (error) {
+          console.error('[InsightsInterface] Error parsing SSE message:', error);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setSessionActive(false);
+        setIsProcessing(false);
+        const delay = Math.min(1000 * 2 ** reconnectAttempts, MAX_RECONNECT_DELAY);
+        reconnectAttempts++;
+        console.log(`[InsightsInterface] SSE disconnected, reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+        reconnectTimer = setTimeout(connect, delay);
+      };
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        if (!sseRef.current || sseRef.current.readyState === EventSource.CLOSED) {
+          connect();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    connect();
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      sseRef.current?.close();
+    };
+  }, [userId]);
+
+  // Render Settings page if on settings
+  if (currentPage === 'settings') {
+    return (
+      <Settings
+        onBack={() => setCurrentPage('insights')}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={toggleTheme}
+        userId={userId}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="h-screen flex overflow-hidden"
+      style={{ backgroundColor: 'var(--background)' }}
+    >
+      {/* Session disconnected banner — fixed on top of everything */}
+      <AnimatePresence>
+        {sessionActive === false && (
+          <motion.div
+            initial={{ y: -40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -40, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/15 backdrop-blur-sm border-b border-red-500/20"
+          >
+            <svg className="w-3.5 h-3.5 text-red-400 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
+            </svg>
+            <span className="text-red-400 text-xs font-medium">Disconnected — attempting to reconnect</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <motion.div
+        className="flex-1 flex flex-col relative"
+        initial={{ x: 0 }}
+        animate={{ x: 0 }}
+        style={{ backgroundColor: 'var(--background)' }}
+      >
+        {/* Header */}
+        <Header onSettingsClick={() => setCurrentPage('settings')} />
+
+        {/* Main Content Area */}
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto relative"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {/* Empty States: Welcome / Disconnected / Loading */}
+          <AnimatePresence mode="wait">
+            {isLoadingHistory && insights.length === 0 && (
+              <motion.div
+                key="loading-screen"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
+              >
+                <div className="flex flex-col items-center gap-3 -mt-[80px]">
+                  <svg className="w-6 h-6 text-muted-foreground animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
+                  </svg>
+                  <span className="text-[14px] text-muted-foreground font-medium">Loading insights...</span>
+                </div>
+              </motion.div>
+            )}
+            {!isLoadingHistory && insights.length === 0 && sessionActive === false && (
+              <motion.div
+                key="disconnected-screen"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
+              >
+                <div className="flex flex-col items-center -mt-[80px]">
+                  <Lottie
+                    animationData={MentraLogoAnimation}
+                    loop={true}
+                    autoplay={true}
+                    className="w-[150px] h-[150px] mb-[10px]"
+                  />
+                  <h1 className="text-[20px] font-semibold" style={{ color: 'var(--secondary-foreground)' }}>
+                    Waiting for connection...
+                  </h1>
+                </div>
+              </motion.div>
+            )}
+            {!isLoadingHistory && insights.length === 0 && sessionActive !== false && !hasConnectedBefore && (
+              <motion.div
+                key="welcome-screen"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
+              >
+                <div className="flex flex-col items-center -mt-[80px]">
+                  <motion.div
+                    initial={{ y: '5vh' }}
+                    animate={{ y: 0 }}
+                    transition={{
+                      duration: 0.7,
+                      ease: [0.25, 0.1, 0.25, 1],
+                      delay: 0.3,
+                    }}
+                    className="mb-[10px]"
+                  >
+                    <Lottie
+                      animationData={MentraLogoAnimation}
+                      loop={true}
+                      autoplay={true}
+                      className="w-[150px] h-[150px]"
+                    />
+                  </motion.div>
+                  <h1 className="text-[20px] sm:text-4xl md:text-5xl lg:text-6xl font-semibold flex gap-[4px] justify-center">
+                    {['Listening', 'for', 'conversations...'].map((word, index) => (
+                      <motion.span
+                        key={index}
+                        initial={{ opacity: 0, filter: 'blur(10px)' }}
+                        animate={{ opacity: 1, filter: 'blur(0px)' }}
+                        transition={{
+                          duration: 0.5,
+                          ease: [0.25, 0.1, 0.25, 1],
+                          delay: 0.7 + index * 0.15,
+                        }}
+                        style={{ color: 'var(--secondary-foreground)' }}
+                      >
+                        {word}
+                      </motion.span>
+                    ))}
+                  </h1>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.6,
+                      ease: [0.25, 0.1, 0.25, 1],
+                      delay: 1.15,
+                    }}
+                    className="text-[14px] text-muted-foreground mt-[8px]"
+                  >
+                    Insights will appear as you talk.
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Insight List */}
+          {(insights.length > 0 || hasConnectedBefore) && (
+            <motion.div
+              initial={hasConnectedBefore ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: hasConnectedBefore ? 0 : 0.5, ease: 'easeOut' }}
+              className="px-[24px] py-6 pb-[150px] relative z-20"
+            >
+              <div className="max-w-3xl mx-auto space-y-6">
+                {insights.map((insight) => {
+                  const isNew = !renderedIdsRef.current.has(insight.id);
+                  if (isNew) renderedIdsRef.current.add(insight.id);
+                  return (
+                    <InsightBubble
+                      key={insight.id}
+                      insight={insight}
+                      isNew={isNew}
+                    />
+                  );
+                })}
+
+                {/* Processing Indicator */}
+                {isProcessing && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2"
+                  >
+                    <div className="flex-shrink-0">
+                      <img src={MergeLogo} alt="Mentra" className="w-[40px] h-[40px]" />
+                    </div>
+                    <motion.div
+                      className="text-sm text-muted-foreground italic"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {`${thinkingWord}...`.split('').map((char, index) => (
+                        <motion.span
+                          key={index}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          {char}
+                        </motion.span>
+                      ))}
+                    </motion.div>
+                  </motion.div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Bottom Header */}
+        <BottomHeader isVisible={insights.length > 0} />
+      </motion.div>
+    </div>
+  );
+}
+
+export default InsightsInterface;

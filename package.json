@@ -1,5 +1,5 @@
 {
-  "name": "mentraos-camera-app",
+  "name": "mentra-merge",
   "version": "1.0.0",
   "type": "module",
   "module": "src/index.ts",
@@ -7,10 +7,13 @@
     "dev": "NODE_ENV=development bun --watch src/index.ts",
     "start": "bun src/index.ts"
   },
-  "author": "Aryan Farhang",
+  "author": "Mentra",
   "license": "ISC",
-  "description": "Camera app for taking photos with MentraOS",
+  "description": "Proactive conversation intelligence for MentraOS smart glasses",
   "dependencies": {
+    "@ai-sdk/openai": "^1.3.23",
+    "@googlemaps/google-maps-services-js": "^3.4.2",
+    "@mastra/core": "^0.10.15",
     "@mentra/react": "2.1.2",
     "@mentra/sdk": "3.0.0-hono.6",
     "@radix-ui/react-scroll-area": "^1.2.2",
@@ -20,19 +23,23 @@
     "bun-plugin-tailwind": "^0.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.34.0",
     "hono": "^4.11.3",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.554.0",
     "react": "^19",
     "react-dom": "^19",
+    "react-markdown": "^10.1.0",
+    "string-similarity": "^4.0.4",
     "tailwind-merge": "^3.2.0",
     "tw-animate-css": "^1.3.8",
-    "ws": "^8.18.1"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/ws": "^8.18.0",
+    "@types/string-similarity": "^4.0.2",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.0.0"
   }
