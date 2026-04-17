@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
+import { chatModel } from "../model";
 import { Action, AgentType, type Conversation, type AgentResponse } from "../types";
 
 const baseInstructions = `You are the Initial Agent for Merge, a proactive conversation intelligence system for smart glasses.
@@ -229,19 +229,19 @@ ${baseInstructions}
 
 export const initialAgentHigh = new Agent({
   name: "InitialAgentHigh",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: highFrequencyInstructions
 });
 
 export const initialAgentMedium = new Agent({
   name: "InitialAgentMedium",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: mediumFrequencyInstructions
 });
 
 export const initialAgentLow = new Agent({
   name: "InitialAgentLow",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: lowFrequencyInstructions
 });
 

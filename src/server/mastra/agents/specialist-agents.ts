@@ -1,6 +1,6 @@
 import { AppSession } from "@mentra/sdk";
 import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
+import { chatModel } from "../model";
 import { createTool } from "@mastra/core";
 import { RuntimeContext } from "@mastra/core/di";
 import { z } from "zod";
@@ -15,7 +15,7 @@ const GOOGLE_WEATHER_API_KEY = process.env.GOOGLE_WEATHER_API_KEY || process.env
 // Definer Agent - for acronyms and technical terms
 export const definerAgent = new Agent({
   name: "DefinerAgent",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: `You are a specialist agent that defines acronyms and technical terms.
 
 INPUT: You receive a technical term, acronym, or jargon that needs definition. You may also receive a language hint indicating what language the user is speaking.
@@ -41,7 +41,7 @@ EXAMPLES (French):
 // FactChecker Agent - for verifying claims
 export const factCheckerAgent = new Agent({
   name: "FactCheckerAgent",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: `You are a fact-checking specialist for smart glasses that clarifies false statements. You must start your response with "False: " (or the equivalent in the user's language, e.g., "Faux: " in French) and then provide the correct fact.
 
 LANGUAGE RULE: You MUST respond in the same language the user is speaking. If the conversation is in French, respond in French. If in Spanish, respond in Spanish.
@@ -75,7 +75,7 @@ import { serpApiSearchTool } from "../tools/serpapi-search";
 
 export const webSearchAgent = new Agent({
   name: "WebSearchAgent",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: `You are a web search synthesizer for smart glasses. Your goal is to synthesize structured search results into a single, definitive, concise insight.
 
 INPUT: A JSON object containing structured search results which may include an 'answer_box', a 'knowledge_graph', and a list of 'organic_results'.
@@ -151,7 +151,7 @@ Your only job is to synthesize the provided data into useful insights.`,
 
 export const placesAgent = new Agent({
   name: "PlacesAgent",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: `You are the Places Agent. Your goal is to provide a concise, natural-sounding answer to the user's query using the structured data provided.
 
 **Core Rule: For every place you mention in your response, you MUST include its distance.** This is a non-negotiable rule.
@@ -167,7 +167,7 @@ Analyze the user's original query to understand their specific intent and follow
 
 export const weatherAgent = new Agent({
   name: "WeatherAgent",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: `You are the Weather Agent. Your goal is to provide a concise, natural-sounding summary of the weather data provided.
 
 - The user wants to know the current temperature and the general condition (e.g., "Clear", "Clouds", "Rain").
@@ -216,7 +216,7 @@ const calculationTool = createTool({
 
 export const computationAgent = new Agent({
   name: "ComputationAgent",
-  model: openai("gpt-4.1-mini"),
+  model: chatModel(),
   instructions: `You are a calculation specialist for smart glasses display.
 
 CAPABILITIES:
