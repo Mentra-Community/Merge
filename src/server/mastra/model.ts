@@ -1,9 +1,9 @@
 import { createAzure } from "@ai-sdk/azure";
 
 const azure = createAzure({
-  baseURL: process.env.AZURE_OPENAI_BASE_URL,
+  resourceName: process.env.AZURE_OPENAI_RESOURCE,
   apiKey: process.env.AZURE_OPENAI_API_KEY,
-  apiVersion: "preview",
+  apiVersion: "2025-03-01-preview",
 });
 
 const DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT ?? "gpt-5.4-mini";
