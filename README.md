@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://apps.mentra.glass/package/com.mentra.merge">Install from Mentra App Store</a>
+  <a href="https://apps.mentra.glass/package/com.mentra.merge">Install from Mentra MiniApp Store</a>
 </p>
 
 ---

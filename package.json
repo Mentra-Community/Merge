@@ -11,7 +11,7 @@
   "license": "ISC",
   "description": "Proactive conversation intelligence for MentraOS smart glasses",
   "dependencies": {
-    "@ai-sdk/openai": "^1.3.23",
+    "@ai-sdk/azure": "^1",
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "@mastra/core": "^0.10.15",
     "@mentra/react": "2.1.2",
